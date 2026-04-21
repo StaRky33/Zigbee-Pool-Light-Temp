@@ -17,3 +17,9 @@
 
 /* Interval between two temperature reads/reports (ms) */
 #define TEMP_REPORT_INTERVAL_MS 30000
+
+/* ── OTA identity ── */
+#define OTA_ENDPOINT          1
+#define OTA_MANUFACTURER_CODE 0x1234   // arbitrary — must match .ota file
+#define OTA_IMAGE_TYPE        0x0000
+#define OTA_FILE_VERSION      0x01000000  // increment for each new release

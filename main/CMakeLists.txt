@@ -11,6 +11,7 @@ idf_component_register(
         esp_adc
         esp_timer
         nvs_flash
+        app_update
         log
         esp_system
 )

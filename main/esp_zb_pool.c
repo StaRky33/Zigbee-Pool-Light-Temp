@@ -2,6 +2,7 @@
  * Pool Controller – ESP32-C6
  * API esp_zb_* v1.x — based on HA_on_off_light example
  *
+ * EP  1 : OTA Upgrade (client)
  * EP 10 : On/Off  → GPIO4 relay
  * EP 11 : Temperature Measurement (NTC ADC)
  *         + custom offset attribute 0xFF00 (int16, hundredths of °C)
@@ -17,7 +18,9 @@
 #include "esp_log.h"
 #include "nvs_flash.h"
 #include "esp_partition.h"
+#include "esp_ota_ops.h"
 #include "ha/esp_zigbee_ha_standard.h"
+#include "esp_zigbee_ota.h"
 #include "esp_zb_pool.h"
 #include "relay.h"
 #include "ntc.h"
@@ -27,9 +30,76 @@ static const char *TAG = "POOL_CTRL";
 /* Temperature offset writable via Zigbee (hundredths of °C) */
 static int16_t s_temp_offset = 0;
 
+/* OTA state */
+static esp_ota_handle_t s_ota_handle     = 0;
+static uint32_t         s_ota_total_size = 0;
+static uint32_t         s_ota_offset     = 0;
+
 /* Cluster IDs */
 #define ZCL_CLUSTER_TEMP_MEASUREMENT    ESP_ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT
 #define ZCL_CLUSTER_ON_OFF              ESP_ZB_ZCL_CLUSTER_ID_ON_OFF
+
+/* ── OTA callback ───────────────────────────────────────── */
+static esp_err_t zb_ota_upgrade_status_handler(
+        esp_zb_zcl_ota_upgrade_value_message_t msg)
+{
+    esp_err_t ret = ESP_OK;
+
+    switch (msg.upgrade_status) {
+    case ESP_ZB_ZCL_OTA_UPGRADE_STATUS_START:
+        ESP_LOGI(TAG, "OTA start — image size: %lu bytes",
+                 msg.ota_header.image_size);
+        s_ota_total_size = msg.ota_header.image_size;
+        s_ota_offset     = 0;
+        const esp_partition_t *ota_part =
+            esp_ota_get_next_update_partition(NULL);
+        ret = esp_ota_begin(ota_part, s_ota_total_size, &s_ota_handle);
+        if (ret != ESP_OK) {
+            ESP_LOGE(TAG, "esp_ota_begin failed: %s", esp_err_to_name(ret));
+        }
+        break;
+
+    case ESP_ZB_ZCL_OTA_UPGRADE_STATUS_RECEIVE:
+        s_ota_offset += msg.payload_size;
+        ESP_LOGI(TAG, "OTA progress: %lu / %lu bytes (%.1f%%)",
+                 s_ota_offset, s_ota_total_size,
+                 100.0f * s_ota_offset / s_ota_total_size);
+        ret = esp_ota_write(s_ota_handle, msg.payload, msg.payload_size);
+        if (ret != ESP_OK) {
+            ESP_LOGE(TAG, "esp_ota_write failed: %s", esp_err_to_name(ret));
+        }
+        break;
+
+    case ESP_ZB_ZCL_OTA_UPGRADE_STATUS_FINISH:
+        ESP_LOGI(TAG, "OTA complete — validating and rebooting...");
+        ret = esp_ota_end(s_ota_handle);
+        if (ret != ESP_OK) {
+            ESP_LOGE(TAG, "esp_ota_end failed: %s", esp_err_to_name(ret));
+            break;
+        }
+        ret = esp_ota_set_boot_partition(
+            esp_ota_get_next_update_partition(NULL));
+        if (ret != ESP_OK) {
+            ESP_LOGE(TAG, "esp_ota_set_boot_partition failed: %s",
+                     esp_err_to_name(ret));
+            break;
+        }
+        ESP_LOGI(TAG, "Rebooting in 2s...");
+        vTaskDelay(pdMS_TO_TICKS(2000));
+        esp_restart();
+        break;
+
+    case ESP_ZB_ZCL_OTA_UPGRADE_STATUS_ABORT:
+        ESP_LOGW(TAG, "OTA aborted");
+        esp_ota_abort(s_ota_handle);
+        s_ota_handle = 0;
+        break;
+
+    default:
+        break;
+    }
+    return ret;
+}
 
 /* ── Attribute callback ─────────────────────────────────── */
 static esp_err_t zb_attribute_handler(
@@ -73,6 +143,9 @@ static esp_err_t zb_action_handler(
     if (callback_id == ESP_ZB_CORE_SET_ATTR_VALUE_CB_ID) {
         return zb_attribute_handler(
             (esp_zb_zcl_set_attr_value_message_t *)message);
+    } else if (callback_id == ESP_ZB_CORE_OTA_UPGRADE_VALUE_CB_ID) {
+        return zb_ota_upgrade_status_handler(
+            *(esp_zb_zcl_ota_upgrade_value_message_t *)message);
     } else if (callback_id == ESP_ZB_CORE_CMD_DEFAULT_RESP_CB_ID) {
         /* Default Response from coordinator — normal ZCL behaviour, ignore */
         return ESP_OK;
@@ -82,7 +155,7 @@ static esp_err_t zb_action_handler(
     }
 }
 
-/* ── Signal handler (mirrors HA_on_off_light example) ─── */
+/* ── Signal handler ─────────────────────────────────────── */
 void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
 {
     uint32_t *p = signal_struct->p_app_signal;
@@ -114,14 +187,14 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
         }
         break;
 
-    case ESP_ZB_BDB_SIGNAL_STEERING:
+     case ESP_ZB_BDB_SIGNAL_STEERING:
         if (err == ESP_OK) {
             ESP_LOGI(TAG,
                 "Network joined — PAN:0x%04hx Ch:%d Addr:0x%04hx",
                 esp_zb_get_pan_id(),
                 esp_zb_get_current_channel(),
                 esp_zb_get_short_address());
-        } else {
+            esp_zb_ota_upgrade_client_query_interval_set(OTA_ENDPOINT, 1);
             ESP_LOGW(TAG, "Steering failed, retrying...");
             esp_zb_bdb_start_top_level_commissioning(
                 ESP_ZB_BDB_MODE_NETWORK_STEERING);
@@ -129,7 +202,6 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
         break;
 
     default:
-        /* Only warn on actual errors, log info otherwise */
         if (err != ESP_OK) {
             ESP_LOGW(TAG, "ZDO signal: 0x%x status: %s",
                      sig_type, esp_err_to_name(err));
@@ -166,7 +238,6 @@ static void esp_zb_task(void *pvParameters)
     static const char s_model[]  = ZB_DEVICE_MODEL;
     static const char s_vendor[] = ZB_DEVICE_VENDOR;
 
-    
     esp_zb_cluster_add_attr(basic_attrs,
         ESP_ZB_ZCL_CLUSTER_ID_BASIC,
         ESP_ZB_ZCL_ATTR_BASIC_MODEL_IDENTIFIER_ID,
@@ -181,6 +252,48 @@ static void esp_zb_task(void *pvParameters)
         ESP_ZB_ZCL_ATTR_ACCESS_READ_ONLY,
         (void *)s_vendor);
 
+    /* ── EP 1 : OTA Upgrade (client) ───────────────────── */
+    esp_zb_ota_cluster_cfg_t ota_cluster_cfg = {
+        .ota_upgrade_file_version        = OTA_FILE_VERSION,
+        .ota_upgrade_downloaded_file_ver = ESP_ZB_ZCL_OTA_UPGRADE_DOWNLOADED_FILE_VERSION_DEF_VALUE,
+        .ota_upgrade_manufacturer        = OTA_MANUFACTURER_CODE,
+        .ota_upgrade_image_type          = OTA_IMAGE_TYPE,
+    };
+    esp_zb_attribute_list_t *ota_attrs =
+        esp_zb_ota_cluster_create(&ota_cluster_cfg);
+
+    esp_zb_zcl_ota_upgrade_client_variable_t variable_config = {
+        .timer_query   = ESP_ZB_ZCL_OTA_UPGRADE_QUERY_TIMER_COUNT_DEF,
+        .hw_version    = 0x0101,
+        .max_data_size = 223,
+    };
+    uint16_t ota_upgrade_server_addr = 0xffff;
+    uint8_t  ota_upgrade_server_ep   = 0xff;
+
+    esp_zb_ota_cluster_add_attr(ota_attrs,
+        ESP_ZB_ZCL_ATTR_OTA_UPGRADE_CLIENT_DATA_ID,
+        (void *)&variable_config);
+    esp_zb_ota_cluster_add_attr(ota_attrs,
+        ESP_ZB_ZCL_ATTR_OTA_UPGRADE_SERVER_ADDR_ID,
+        (void *)&ota_upgrade_server_addr);
+    esp_zb_ota_cluster_add_attr(ota_attrs,
+        ESP_ZB_ZCL_ATTR_OTA_UPGRADE_SERVER_ENDPOINT_ID,
+        (void *)&ota_upgrade_server_ep);
+
+    esp_zb_cluster_list_t *ota_clusters =
+        esp_zb_zcl_cluster_list_create();
+    esp_zb_cluster_list_add_ota_cluster(ota_clusters, ota_attrs,
+        ESP_ZB_ZCL_CLUSTER_CLIENT_ROLE);
+
+    esp_zb_endpoint_config_t ep1_cfg = {
+        .endpoint           = OTA_ENDPOINT,
+        .app_profile_id     = ESP_ZB_AF_HA_PROFILE_ID,
+        .app_device_id      = ESP_ZB_HA_TEST_DEVICE_ID,
+        .app_device_version = 0,
+    };
+    esp_zb_ep_list_t *ep_list = esp_zb_ep_list_create();
+    esp_zb_ep_list_add_ep(ep_list, ota_clusters, ep1_cfg);
+
     /* ── EP 10 : On/Off relay ───────────────────────────── */
     esp_zb_on_off_light_cfg_t relay_cfg =
         ESP_ZB_DEFAULT_ON_OFF_LIGHT_CONFIG();
@@ -190,7 +303,6 @@ static void esp_zb_task(void *pvParameters)
         .app_device_id      = ESP_ZB_HA_ON_OFF_LIGHT_DEVICE_ID,
         .app_device_version = 0,
     };
-    esp_zb_ep_list_t *ep_list = esp_zb_ep_list_create();
     esp_zb_ep_list_add_ep(ep_list,
         esp_zb_on_off_light_clusters_create(&relay_cfg),
         ep10_cfg);

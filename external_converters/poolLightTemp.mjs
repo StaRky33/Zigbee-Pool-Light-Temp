@@ -4,15 +4,19 @@ import * as fz from 'zigbee-herdsman-converters/converters/fromZigbee';
 import * as tz from 'zigbee-herdsman-converters/converters/toZigbee';
 
 const fzLocal = {
-    temp_offset: {
+    temp_and_offset: {
         cluster: 'msTemperatureMeasurement',
         type: ['readResponse', 'attributeReport'],
         convert: (model, msg, publish, options, meta) => {
+            const result = {};
+            if (msg.data.hasOwnProperty('measuredValue')) {
+                result.temperature_11 = parseFloat((msg.data['measuredValue'] / 100).toFixed(2));
+            }
             const val = (msg.data || {})[0xFF00];
             if (val !== undefined) {
-                return {temperature_offset: parseFloat((val / 100).toFixed(2))};
+                result.temperature_offset = parseFloat((val / 100).toFixed(2));
             }
-            return {};
+            return result;
         },
     },
 };
@@ -43,14 +47,14 @@ export default {
     description: 'Pool controller — pump relay (EP10) + NTC temperature sensor with offset (EP11)',
 
     extend: [
-        m.deviceEndpoints({endpoints: {'10': 10, '11': 11}}),
+        m.deviceEndpoints({endpoints: {'1': 1, '10': 10, '11': 11}}),
     ],
 
-    fromZigbee: [fz.on_off, fz.temperature, fzLocal.temp_offset],
-    toZigbee:   [tz.on_off, tzLocal.temp_offset],
+    fromZigbee: [fz.on_off, fzLocal.temp_and_offset],
+    toZigbee: [tz.on_off, tz.temperature, tzLocal.temp_offset],
 
     exposes: [
-        e.switch(),
+        e.switch().withEndpoint('10'),
         e.temperature().withEndpoint('11'),
         {
             type: 'numeric',
@@ -71,4 +75,6 @@ export default {
         const endpoint = device.getEndpoint(11);
         await endpoint.read('msTemperatureMeasurement', [0xFF00]);
     },
+
+    ota: true,
 };
