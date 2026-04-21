@@ -1,0 +1,139 @@
+<svg width="100%" viewBox="0 0 680 900" role="img" xmlns="http://www.w3.org/2000/svg">
+  <title>Zigbee Pool Light Temp — electrical schematic v3</title>
+  <desc>Electrical schematic with improved contrast and no label overlaps.</desc>
+
+  <style>
+    text { font-family: sans-serif; }
+    .th  { font-size: 14px; font-weight: 500; }
+    .ts  { font-size: 12px; font-weight: 400; }
+  </style>
+
+  <!-- ══ 3.3V RAIL ══ -->
+  <line x1="44" y1="52" x2="636" y2="52" stroke="#27ae60" stroke-width="2"/>
+  <text class="ts" x="46" y="46" fill="#27ae60">+3.3V</text>
+
+  <!-- ══ GND BUS ══ -->
+  <line x1="44" y1="840" x2="636" y2="840" stroke="#2c3e50" stroke-width="2.5"/>
+  <line x1="316" y1="847" x2="364" y2="847" stroke="#2c3e50" stroke-width="2"/>
+  <line x1="324" y1="854" x2="356" y2="854" stroke="#2c3e50" stroke-width="2"/>
+  <line x1="332" y1="861" x2="348" y2="861" stroke="#2c3e50" stroke-width="2"/>
+  <text class="ts" x="340" y="876" text-anchor="middle" fill="#2c3e50">GND</text>
+
+  <!-- ══ 12V AC SOURCE ══ -->
+  <rect x="44" y="130" width="108" height="64" rx="4" fill="#1a1a1a" stroke="#f39c12" stroke-width="1.5"/>
+  <text class="th" x="98" y="156" text-anchor="middle" dominant-baseline="central" fill="#f39c12">12V AC</text>
+  <text class="ts" x="98" y="176" text-anchor="middle" dominant-baseline="central" fill="#e67e22">SEAMAID</text>
+  <line x1="152" y1="148" x2="192" y2="148" stroke="#c0392b" stroke-width="2"/>
+  <text class="ts" x="156" y="143" fill="#c0392b">L</text>
+  <line x1="152" y1="178" x2="192" y2="178" stroke="#7f8c8d" stroke-width="2"/>
+  <text class="ts" x="156" y="191" fill="#7f8c8d">N</text>
+
+  <!-- ══ LM2596HV ══ -->
+  <rect x="192" y="110" width="128" height="84" rx="4" fill="#0d3349" stroke="#1abc9c" stroke-width="1.5"/>
+  <text class="th" x="256" y="136" text-anchor="middle" dominant-baseline="central" fill="#1abc9c">LM2596HV</text>
+  <text class="ts" x="256" y="155" text-anchor="middle" dominant-baseline="central" fill="#a0d9cc">12V AC → 3.3V DC</text>
+  <text class="ts" x="256" y="171" text-anchor="middle" dominant-baseline="central" fill="#a0d9cc">buck converter</text>
+  <text class="ts" x="196" y="142" fill="#1abc9c">IN+</text>
+  <text class="ts" x="196" y="180" fill="#1abc9c">IN−</text>
+  <text class="ts" x="324" y="122" fill="#27ae60">OUT+</text>
+  <text class="ts" x="324" y="170" fill="#7f8c8d">OUT−</text>
+  <line x1="320" y1="128" x2="340" y2="128" stroke="#27ae60" stroke-width="1.5"/>
+  <line x1="340" y1="128" x2="340" y2="52" stroke="#27ae60" stroke-width="1.5"/>
+  <circle cx="340" cy="52" r="3" fill="#27ae60"/>
+  <line x1="320" y1="176" x2="356" y2="176" stroke="#7f8c8d" stroke-width="1.5"/>
+  <line x1="356" y1="176" x2="356" y2="840" stroke="#7f8c8d" stroke-width="1.5" stroke-dasharray="5 3"/>
+  <circle cx="356" cy="840" r="3" fill="#2c3e50"/>
+
+  <!-- ══ ESP32-C6 ══ -->
+  <rect x="384" y="100" width="184" height="240" rx="4" fill="#1a0a3d" stroke="#9b59b6" stroke-width="1.5"/>
+  <text class="th" x="476" y="124" text-anchor="middle" dominant-baseline="central" fill="#e8daff">ESP32-C6</text>
+  <text class="ts" x="476" y="143" text-anchor="middle" dominant-baseline="central" fill="#9b59b6">Zigbee 3.0 end device</text>
+  <text class="ts" x="390" y="174" fill="#c8b4f0">3V3 ●</text>
+  <text class="ts" x="390" y="200" fill="#c8b4f0">GND ●</text>
+  <text class="ts" x="390" y="226" fill="#c8b4f0">GPIO1 ●</text>
+  <text class="ts" x="390" y="252" fill="#c8b4f0">GPIO4 ●</text>
+  <line x1="384" y1="168" x2="368" y2="168" stroke="#27ae60" stroke-width="1.5"/>
+  <line x1="368" y1="168" x2="368" y2="52" stroke="#27ae60" stroke-width="1.5"/>
+  <circle cx="368" cy="52" r="3" fill="#27ae60"/>
+  <line x1="384" y1="194" x2="372" y2="194" stroke="#7f8c8d" stroke-width="1.5"/>
+  <line x1="372" y1="194" x2="372" y2="840" stroke="#7f8c8d" stroke-width="1.5"/>
+  <circle cx="372" cy="840" r="3" fill="#2c3e50"/>
+  <line x1="384" y1="220" x2="360" y2="220" stroke="#2980b9" stroke-width="1.5"/>
+  <line x1="360" y1="220" x2="360" y2="390" stroke="#2980b9" stroke-width="1.5"/>
+  <line x1="384" y1="246" x2="348" y2="246" stroke="#8e44ad" stroke-width="1.5"/>
+  <line x1="348" y1="246" x2="348" y2="510" stroke="#8e44ad" stroke-width="1.5"/>
+  <text class="ts" x="354" y="420" fill="#8e44ad">GPIO4</text>
+
+  <!-- ══ VOLTAGE DIVIDER — 10kΩ ref ══ -->
+  <line x1="600" y1="52" x2="600" y2="330" stroke="#27ae60" stroke-width="1.5"/>
+  <circle cx="600" cy="52" r="3" fill="#27ae60"/>
+  <rect x="578" y="330" width="44" height="60" rx="2" fill="#2c2c2c" stroke="#bdc3c7" stroke-width="1"/>
+  <text class="ts" x="600" y="352" text-anchor="middle" dominant-baseline="central" fill="#ecf0f1">10kΩ</text>
+  <text class="ts" x="600" y="370" text-anchor="middle" dominant-baseline="central" fill="#bdc3c7">1%</text>
+  <line x1="600" y1="390" x2="600" y2="420" stroke="#2980b9" stroke-width="1.5"/>
+  <circle cx="600" cy="390" r="4" fill="#2980b9"/>
+  <line x1="600" y1="390" x2="360" y2="390" stroke="#2980b9" stroke-width="1.5"/>
+  <circle cx="360" cy="390" r="3" fill="#2980b9"/>
+  <text class="ts" x="480" y="384" text-anchor="middle" fill="#2980b9">GPIO1 / ADC</text>
+
+  <!-- ══ NTC probe ══ -->
+  <rect x="578" y="420" width="44" height="60" rx="2" fill="#0d2233" stroke="#2980b9" stroke-width="1.5"/>
+  <text class="ts" x="600" y="442" text-anchor="middle" dominant-baseline="central" fill="#85c1e9">NTC</text>
+  <text class="ts" x="600" y="460" text-anchor="middle" dominant-baseline="central" fill="#5dade2">10kΩ</text>
+  <text class="ts" x="628" y="444" fill="#5dade2">035HP05202</text>
+  <text class="ts" x="628" y="460" fill="#5dade2">pool probe</text>
+  <line x1="600" y1="480" x2="600" y2="840" stroke="#7f8c8d" stroke-width="1.5"/>
+  <circle cx="600" cy="840" r="3" fill="#2c3e50"/>
+
+  <!-- ══ RELAY MODULE ══ -->
+  <rect x="192" y="470" width="140" height="100" rx="4" fill="#2d0a0a" stroke="#e74c3c" stroke-width="1.5"/>
+  <text class="th" x="262" y="494" text-anchor="middle" dominant-baseline="central" fill="#f1948a">Relay module</text>
+  <text class="ts" x="262" y="512" text-anchor="middle" dominant-baseline="central" fill="#e74c3c">3.3V optocoupler</text>
+  <text class="ts" x="262" y="532" text-anchor="middle" dominant-baseline="central" fill="#f1948a">VCC · GND · IN</text>
+  <text class="ts" x="214" y="576" text-anchor="middle" fill="#f1948a">COM</text>
+  <text class="ts" x="262" y="576" text-anchor="middle" fill="#f1948a">NO</text>
+  <text class="ts" x="310" y="576" text-anchor="middle" fill="#f1948a">NC</text>
+  <line x1="192" y1="488" x2="176" y2="488" stroke="#27ae60" stroke-width="1.5"/>
+  <line x1="176" y1="488" x2="176" y2="52" stroke="#27ae60" stroke-width="1.5"/>
+  <circle cx="176" cy="52" r="3" fill="#27ae60"/>
+  <line x1="192" y1="510" x2="164" y2="510" stroke="#7f8c8d" stroke-width="1.5"/>
+  <line x1="164" y1="510" x2="164" y2="840" stroke="#7f8c8d" stroke-width="1.5"/>
+  <circle cx="164" cy="840" r="3" fill="#2c3e50"/>
+  <line x1="348" y1="510" x2="192" y2="510" stroke="#8e44ad" stroke-width="1.5"/>
+
+  <!-- ══ COM → 12V AC L ══ -->
+  <line x1="214" y1="570" x2="214" y2="620" stroke="#c0392b" stroke-width="2"/>
+  <line x1="214" y1="620" x2="92" y2="620" stroke="#c0392b" stroke-width="2"/>
+  <line x1="92" y1="620" x2="92" y2="148" stroke="#c0392b" stroke-width="2"/>
+  <circle cx="92" cy="148" r="3" fill="#c0392b"/>
+  <text class="ts" x="150" y="614" text-anchor="middle" fill="#c0392b">12V AC  L</text>
+
+  <!-- ══ NO → Pool LED L ══ -->
+  <line x1="262" y1="570" x2="262" y2="650" stroke="#c0392b" stroke-width="2"/>
+  <line x1="262" y1="650" x2="500" y2="650" stroke="#c0392b" stroke-width="2"/>
+
+  <!-- ══ POOL LED ══ -->
+  <rect x="500" y="630" width="110" height="60" rx="4" fill="#1a1a1a" stroke="#f39c12" stroke-width="1.5"/>
+  <text class="th" x="555" y="654" text-anchor="middle" dominant-baseline="central" fill="#f39c12">Pool LED</text>
+  <text class="ts" x="555" y="672" text-anchor="middle" dominant-baseline="central" fill="#e67e22">12V AC lamp</text>
+  <text class="ts" x="504" y="648" fill="#f39c12">L</text>
+  <text class="ts" x="504" y="672" fill="#7f8c8d">N</text>
+  <line x1="500" y1="665" x2="476" y2="665" stroke="#7f8c8d" stroke-width="2"/>
+  <line x1="476" y1="665" x2="476" y2="178" stroke="#7f8c8d" stroke-width="2"/>
+  <circle cx="476" cy="178" r="3" fill="#7f8c8d"/>
+
+  <!-- ══ WIRE LEGEND ══ -->
+  <rect x="44" y="710" width="300" height="108" rx="4" fill="none" stroke="#555" stroke-width="0.5"/>
+  <text class="th" x="56" y="728" dominant-baseline="central" fill="#aaaaaa">Wire colours</text>
+  <line x1="56" y1="746" x2="90" y2="746" stroke="#c0392b" stroke-width="2"/>
+  <text class="ts" x="96" y="750" fill="#cccccc">12V AC live (L)</text>
+  <line x1="56" y1="764" x2="90" y2="764" stroke="#7f8c8d" stroke-width="2"/>
+  <text class="ts" x="96" y="768" fill="#cccccc">12V AC neutral (N) / GND</text>
+  <line x1="56" y1="782" x2="90" y2="782" stroke="#27ae60" stroke-width="2"/>
+  <text class="ts" x="96" y="786" fill="#cccccc">+3.3V DC</text>
+  <line x1="56" y1="800" x2="90" y2="800" stroke="#8e44ad" stroke-width="2"/>
+  <text class="ts" x="96" y="804" fill="#cccccc">GPIO digital signal</text>
+  <line x1="56" y1="818" x2="90" y2="818" stroke="#2980b9" stroke-width="2"/>
+  <text class="ts" x="96" y="822" fill="#cccccc">ADC analog signal</text>
+
+</svg>
