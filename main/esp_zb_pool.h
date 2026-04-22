@@ -15,5 +15,9 @@
  */
 #define ATTR_TEMP_OFFSET        0xFF00
 
+/* Value depending on temperature sensor attributes. This should work for NTC 10kΩ 035HP05202 */
+#define ATTR_NTC_BETA  0xFF01
+#define NTC_BETA_DEFAULT 3950
+
 /* Interval between two temperature reads/reports (ms) */
 #define TEMP_REPORT_INTERVAL_MS 1800000  // 30 minutes

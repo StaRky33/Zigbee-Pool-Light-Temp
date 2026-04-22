@@ -28,3 +28,6 @@ bool ntc_init(void);
  * Returns false if the reading is outside the physical range.
  */
 bool ntc_read(int16_t *temp_hundredths);
+
+extern float g_ntc_beta;
+#define NTC_BETA g_ntc_beta

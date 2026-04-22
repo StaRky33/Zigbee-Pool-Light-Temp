@@ -1,4 +1,3 @@
-import * as m from 'zigbee-herdsman-converters/lib/modernExtend';
 import {presets as e} from 'zigbee-herdsman-converters/lib/exposes';
 import * as fz from 'zigbee-herdsman-converters/converters/fromZigbee';
 import * as tz from 'zigbee-herdsman-converters/converters/toZigbee';
@@ -12,9 +11,13 @@ const fzLocal = {
             if (msg.data.hasOwnProperty('measuredValue')) {
                 result.temperature = parseFloat((msg.data['measuredValue'] / 100).toFixed(2));
             }
-            const val = (msg.data || {})[0xFF00];
-            if (val !== undefined) {
-                result.temperature_offset = parseFloat((val / 100).toFixed(2));
+            const offset = (msg.data || {})[0xFF00];
+            if (offset !== undefined) {
+                result.temperature_offset = parseFloat((offset / 100).toFixed(2));
+            }
+            const beta = (msg.data || {})[0xFF01];
+            if (beta !== undefined) {
+                result.ntc_beta = beta;
             }
             return result;
         },
@@ -59,6 +62,21 @@ const tzLocal = {
             await endpoint.read('msTemperatureMeasurement', [0xFF00]);
         },
     },
+    ntc_beta: {
+        key: ['ntc_beta'],
+        convertSet: async (entity, key, value, meta) => {
+            const endpoint = meta.device.getEndpoint(11);
+            await endpoint.write(
+                'msTemperatureMeasurement',
+                {0xFF01: {value: Math.round(value), type: 0x21}},
+            );
+            return {state: {ntc_beta: Math.round(value)}};
+        },
+        convertGet: async (entity, key, meta) => {
+            const endpoint = meta.device.getEndpoint(11);
+            await endpoint.read('msTemperatureMeasurement', [0xFF01]);
+        },
+    },
     temperature_get: {
         key: ['temperature'],
         convertGet: async (entity, key, meta) => {
@@ -75,7 +93,7 @@ export default {
     description: 'Pool controller — pump relay (EP10) + NTC temperature sensor with offset (EP11)',
 
     fromZigbee: [fzLocal.on_off, fzLocal.temp_and_offset],
-    toZigbee:   [tzLocal.on_off, tzLocal.temperature_get, tzLocal.temp_offset],
+    toZigbee:   [tzLocal.on_off, tzLocal.temperature_get, tzLocal.temp_offset, tzLocal.ntc_beta],
 
     exposes: [
         e.switch(),
@@ -93,6 +111,19 @@ export default {
             value_max: 10,
             value_step: 0.01,
         },
+        {
+            type: 'numeric',
+            name: 'ntc_beta',
+            label: 'NTC Beta',
+            property: 'ntc_beta',
+            access: 7,
+            category: 'config',
+            unit: 'K',
+            description: 'Beta coefficient of the NTC thermistor (default 3950). Formula: Beta = ln(R/R0) / (1/T - 1/T0) where R0=10kΩ at T0=25°C. Measure R at known temperature T (°C) to calibrate.',
+            value_min: 3000,
+            value_max: 5000,
+            value_step: 1,
+        },
     ],
 
     configure: async (device, coordinatorEndpoint) => {
@@ -104,5 +135,6 @@ export default {
             {attribute: 'measuredValue', minimumReportInterval: 10, maximumReportInterval: 1800, reportableChange: 10},
         ]);
         await ep11.read('msTemperatureMeasurement', [0xFF00]);
+        await ep11.read('msTemperatureMeasurement', [0xFF01]);
     },
 };

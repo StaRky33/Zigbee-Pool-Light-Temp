@@ -5,6 +5,7 @@
  * EP 10 : On/Off  → GPIO4 relay
  * EP 11 : Temperature Measurement (NTC ADC)
  *         + custom offset attribute 0xFF00 (int16, hundredths of °C)
+ *         + custom NTC beta attribute 0xFF01 (uint16, K)
  *
  * Device identity (must match poolLight.mjs external converter):
  *   zigbeeModel : PoolLightTemp
@@ -27,6 +28,9 @@ static volatile bool s_temp_update_requested = false;
 
 /* Temperature offset writable via Zigbee (hundredths of °C) */
 static int16_t s_temp_offset = 0;
+
+/* NTC Beta writable via Zigbee (K) — shared with ntc.c */
+float g_ntc_beta = NTC_BETA_DEFAULT;
 
 /* Cluster IDs */
 #define ZCL_CLUSTER_TEMP_MEASUREMENT    ESP_ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT
@@ -61,7 +65,16 @@ static esp_err_t zb_attribute_handler(
         message->attribute.id == ATTR_TEMP_OFFSET) {
         s_temp_offset = *(int16_t *)message->attribute.data.value;
         ESP_LOGI(TAG, "Temperature offset → %+.2f°C", s_temp_offset / 100.0f);
-        s_temp_update_requested = true;  // force immediate update
+        s_temp_update_requested = true;
+    }
+
+    /* EP 11 : custom NTC beta */
+    if (message->info.dst_endpoint == HA_TEMP_ENDPOINT &&
+        message->info.cluster == ZCL_CLUSTER_TEMP_MEASUREMENT &&
+        message->attribute.id == ATTR_NTC_BETA) {
+        g_ntc_beta = (float)(*(uint16_t *)message->attribute.data.value);
+        ESP_LOGI(TAG, "NTC Beta → %.0f K", g_ntc_beta);
+        s_temp_update_requested = true;
     }
 
     return ESP_OK;
@@ -83,7 +96,7 @@ static esp_err_t zb_action_handler(
     }
 }
 
-/* ── Signal handler (mirrors HA_on_off_light example) ─── */
+/* ── Signal handler ─────────────────────────────────────── */
 void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
 {
     uint32_t *p = signal_struct->p_app_signal;
@@ -167,7 +180,6 @@ static void esp_zb_task(void *pvParameters)
     static const char s_model[]  = ZB_DEVICE_MODEL;
     static const char s_vendor[] = ZB_DEVICE_VENDOR;
 
-    
     esp_zb_cluster_add_attr(basic_attrs,
         ESP_ZB_ZCL_CLUSTER_ID_BASIC,
         ESP_ZB_ZCL_ATTR_BASIC_MODEL_IDENTIFIER_ID,
@@ -213,6 +225,15 @@ static void esp_zb_task(void *pvParameters)
         ESP_ZB_ZCL_ATTR_TYPE_S16,
         ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE,
         &offset_default);
+
+    /* Custom NTC beta attribute: uint16, read/write, default NTC_BETA_DEFAULT */
+    uint16_t beta_default = NTC_BETA_DEFAULT;
+    esp_zb_custom_cluster_add_custom_attr(
+        temp_attrs,
+        ATTR_NTC_BETA,
+        ESP_ZB_ZCL_ATTR_TYPE_U16,
+        ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE,
+        &beta_default);
 
     esp_zb_cluster_list_t *temp_clusters =
         esp_zb_zcl_cluster_list_create();
@@ -262,7 +283,6 @@ static void temp_report_task(void *pvParameters)
         }
         s_temp_update_requested = false;
 
-        /* Attendre soit l'intervalle normal soit une demande de mise à jour */
         for (int i = 0; i < (TEMP_REPORT_INTERVAL_MS / 1000); i++) {
             vTaskDelay(pdMS_TO_TICKS(1000));
             if (s_temp_update_requested) break;
