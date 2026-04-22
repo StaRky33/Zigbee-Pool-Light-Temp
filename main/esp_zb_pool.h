@@ -16,4 +16,4 @@
 #define ATTR_TEMP_OFFSET        0xFF00
 
 /* Interval between two temperature reads/reports (ms) */
-#define TEMP_REPORT_INTERVAL_MS 30000
+#define TEMP_REPORT_INTERVAL_MS 1800000  // 30 minutes

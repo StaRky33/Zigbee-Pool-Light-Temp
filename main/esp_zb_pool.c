@@ -23,6 +23,7 @@
 #include "ntc.h"
 
 static const char *TAG = "POOL_CTRL";
+static volatile bool s_temp_update_requested = false;
 
 /* Temperature offset writable via Zigbee (hundredths of °C) */
 static int16_t s_temp_offset = 0;
@@ -59,8 +60,8 @@ static esp_err_t zb_attribute_handler(
         message->info.cluster == ZCL_CLUSTER_TEMP_MEASUREMENT &&
         message->attribute.id == ATTR_TEMP_OFFSET) {
         s_temp_offset = *(int16_t *)message->attribute.data.value;
-        ESP_LOGI(TAG, "Temperature offset → %+.2f°C",
-                 s_temp_offset / 100.0f);
+        ESP_LOGI(TAG, "Temperature offset → %+.2f°C", s_temp_offset / 100.0f);
+        s_temp_update_requested = true;  // force immediate update
     }
 
     return ESP_OK;
@@ -241,7 +242,6 @@ static void esp_zb_task(void *pvParameters)
 /* ── NTC read task → Zigbee attribute report ────────────── */
 static void temp_report_task(void *pvParameters)
 {
-    /* Wait for the Zigbee stack to be ready */
     vTaskDelay(pdMS_TO_TICKS(5000));
 
     while (1) {
@@ -260,7 +260,13 @@ static void temp_report_task(void *pvParameters)
                      corrected / 100.0f,
                      s_temp_offset / 100.0f);
         }
-        vTaskDelay(pdMS_TO_TICKS(TEMP_REPORT_INTERVAL_MS));
+        s_temp_update_requested = false;
+
+        /* Attendre soit l'intervalle normal soit une demande de mise à jour */
+        for (int i = 0; i < (TEMP_REPORT_INTERVAL_MS / 1000); i++) {
+            vTaskDelay(pdMS_TO_TICKS(1000));
+            if (s_temp_update_requested) break;
+        }
     }
 }
 
