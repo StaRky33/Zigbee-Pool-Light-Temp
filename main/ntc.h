@@ -12,7 +12,7 @@
  * Voltage divider (stable 3.3V supply):
  *   3.3V → R_REF (10kΩ 1%) → GPIO1 (ADC) → NTC → GND
  */
-#define NTC_ADC_CHANNEL     ADC_CHANNEL_0   // GPIO1 on ESP32-C6
+#define NTC_ADC_CHANNEL     ADC_CHANNEL_1   // GPIO1 on ESP32-C6
 #define NTC_R_REF           10000.0f        // reference resistor (Ω)
 #define NTC_R_NOMINAL       10000.0f        // NTC resistance @ T_NOMINAL
 #define NTC_T_NOMINAL       25.0f           // °C
