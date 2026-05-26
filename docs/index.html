@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pool Controller — STARKYDIY</title>
+  <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+  <style>
+    :root {
+      --blue:   #2563eb;
+      --green:  #16a34a;
+      --gray:   #f1f5f9;
+      --border: #e2e8f0;
+      --text:   #1e293b;
+      --muted:  #64748b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f8fafc;
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+    }
+
+    .card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2.5rem 2rem;
+      max-width: 480px;
+      width: 100%;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+    }
+
+    .badge {
+      display: inline-block;
+      background: var(--gray);
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 0.25rem 0.75rem;
+      border-radius: 99px;
+      margin-bottom: 1.25rem;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 0.4rem;
+    }
+
+    .version {
+      color: var(--muted);
+      font-size: 0.875rem;
+      margin-bottom: 1.75rem;
+    }
+
+    .version span {
+      font-weight: 600;
+      color: var(--blue);
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      margin-bottom: 2rem;
+    }
+
+    .info-item {
+      background: var(--gray);
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+    }
+
+    .info-item .label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      margin-bottom: 0.2rem;
+    }
+
+    .info-item .value {
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 1.75rem 0;
+    }
+
+    .section-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+
+    /* ── Flash button ── */
+    .flash-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    esp-web-install-button {
+      --esp-tools-button-color: var(--blue);
+      --esp-tools-button-text-color: white;
+    }
+
+    esp-web-install-button::part(button) {
+      width: 100%;
+      padding: 0.8rem 1.5rem;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 10px;
+      cursor: pointer;
+      border: none;
+      background: var(--blue);
+      color: white;
+      transition: opacity 0.15s;
+    }
+
+    esp-web-install-button::part(button):hover { opacity: 0.88; }
+
+    .flash-note {
+      font-size: 0.78rem;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    /* ── Download button ── */
+    .download-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      width: 100%;
+      padding: 0.75rem 1.5rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      border-radius: 10px;
+      border: 2px solid var(--green);
+      background: white;
+      color: var(--green);
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .download-btn:hover {
+      background: var(--green);
+      color: white;
+    }
+
+    .download-btn svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+
+    .download-note {
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-align: center;
+      margin-top: 0.5rem;
+    }
+
+    footer {
+      margin-top: 2rem;
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    footer a { color: var(--blue); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="badge">STARKYDIY</div>
+    <h1>Pool Controller</h1>
+    <p class="version">Firmware <span id="fw-version">v1.0.0</span> — ESP32-C6 Zigbee</p>
+
+    <div class="info-grid">
+      <div class="info-item">
+        <div class="label">Chip</div>
+        <div class="value">ESP32-C6</div>
+      </div>
+      <div class="info-item">
+        <div class="label">Protocol</div>
+        <div class="value">Zigbee</div>
+      </div>
+      <div class="info-item">
+        <div class="label">EP 10</div>
+        <div class="value">Relay On/Off</div>
+      </div>
+      <div class="info-item">
+        <div class="label">EP 11</div>
+        <div class="value">NTC Temperature</div>
+      </div>
+    </div>
+
+    <hr class="divider" />
+
+    <!-- ── Flash section ── -->
+    <div class="section-title">① Flash firmware</div>
+    <div class="flash-row">
+      <esp-web-install-button manifest="manifest.json"></esp-web-install-button>
+    </div>
+    <p class="flash-note">Chrome or Edge only — connect ESP32-C6 via USB before clicking</p>
+
+    <hr class="divider" />
+
+    <!-- ── Download section ── -->
+    <div class="section-title">② Download Zigbee2MQTT converter</div>
+    <a
+      class="download-btn"
+      href="https://raw.githubusercontent.com/StaRky33/Zigbee-Pool-Light-Temp/main/external_converters/poolLightTemp.mjs"
+      download="poolLightTemp.mjs"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
+      </svg>
+      Download poolLightTemp.mjs
+    </a>
+    <p class="download-note">Drop in your Zigbee2MQTT <code>external_converters/</code> folder and restart Z2M</p>
+
+    <footer>
+      <a href="https://github.com/StaRky33/Zigbee-Pool-Light-Temp" target="_blank">View on GitHub</a>
+      &nbsp;·&nbsp;
+      <a href="https://github.com/StaRky33/Zigbee-Pool-Light-Temp/releases" target="_blank">Releases</a>
+    </footer>
+  </div>
+</body>
+</html>

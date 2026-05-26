@@ -1,6 +1,7 @@
+// ── Firmware version — keep in sync with version.h ──────────
+const FW_VERSION = '1.0.0';
+
 import {presets as e} from 'zigbee-herdsman-converters/lib/exposes';
-import * as fz from 'zigbee-herdsman-converters/converters/fromZigbee';
-import * as tz from 'zigbee-herdsman-converters/converters/toZigbee';
 
 const fzLocal = {
     temp_and_offset: {
@@ -29,6 +30,17 @@ const fzLocal = {
             if (msg.endpoint.ID === 10) {
                 return {state: msg.data['onOff'] === 1 ? 'ON' : 'OFF'};
             }
+        },
+    },
+    basic_info: {
+        cluster: 'genBasic',
+        type: ['readResponse'],
+        convert: (model, msg, publish, options, meta) => {
+            const result = {};
+            if (msg.data.swBuildId) {
+                result.fw_version = msg.data.swBuildId;
+            }
+            return result;
         },
     },
 };
@@ -90,9 +102,9 @@ export default {
     zigbeeModel: ['PoolLightTemp'],
     model: 'PoolLightTemp',
     vendor: 'STARKYDIY',
-    description: 'Pool controller — pump relay (EP10) + NTC temperature sensor with offset (EP11)',
-
-    fromZigbee: [fzLocal.on_off, fzLocal.temp_and_offset],
+    description: `Pool controller — pump relay (EP10) + NTC temperature sensor with offset (EP11) [fw:${FW_VERSION}]`,
+    
+    fromZigbee: [fzLocal.on_off, fzLocal.temp_and_offset, fzLocal.basic_info],
     toZigbee:   [tzLocal.on_off, tzLocal.temperature_get, tzLocal.temp_offset, tzLocal.ntc_beta],
 
     exposes: [
@@ -119,22 +131,45 @@ export default {
             access: 7,
             category: 'config',
             unit: 'K',
-            description: 'Beta coefficient of the NTC thermistor (default 3950). Formula: Beta = ln(R/R0) / (1/T - 1/T0) where R0=10kΩ at T0=25°C. Measure R at known temperature T (°C) to calibrate.',
+            description: 'Beta coefficient of the NTC thermistor. Formula: Beta = ln(R/R0) / (1/T - 1/T0) where R0=10kΩ at T0=25°C.',
             value_min: 3000,
             value_max: 5000,
             value_step: 1,
+        },
+        {
+            type: 'text',
+            name: 'fw_version',
+            label: 'Firmware version',
+            property: 'fw_version',
+            access: 1,
+            category: 'diagnostic',
+            description: 'Firmware version of the device (from ZCL SWBuildID)',
         },
     ],
 
     configure: async (device, coordinatorEndpoint) => {
         const ep10 = device.getEndpoint(10);
         const ep11 = device.getEndpoint(11);
+
+        // Bind pour recevoir les reports spontanés de l'ESP
         await ep10.bind('genOnOff', coordinatorEndpoint);
         await ep11.bind('msTemperatureMeasurement', coordinatorEndpoint);
-        await ep11.configureReporting('msTemperatureMeasurement', [
-            {attribute: 'measuredValue', minimumReportInterval: 10, maximumReportInterval: 1800, reportableChange: 10},
-        ]);
+
+        // Lire l'état initial du relay → corrige "state: null" au démarrage
+        await ep10.read('genOnOff', ['onOff']);
+
+        // Lire les attributs custom
         await ep11.read('msTemperatureMeasurement', [0xFF00]);
         await ep11.read('msTemperatureMeasurement', [0xFF01]);
+
+        // Lire la version firmware depuis le cluster Basic de EP11
+        // Le résultat est capturé par fzLocal.basic_info et publié dans fw_version
+        const basic = await ep11.read('genBasic', ['swBuildId', 'appVersion']);
+        if (basic && basic.swBuildId) {
+            device.meta.fw_version = basic.swBuildId;
+            device.save();
+        }
+
+        // PAS de configureReporting : l'ESP gère seul le timing via temp_report_task
     },
 };
