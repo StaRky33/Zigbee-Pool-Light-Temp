@@ -7,19 +7,36 @@
   <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
   <style>
     :root {
-      --blue:   #2563eb;
-      --green:  #16a34a;
-      --gray:   #f1f5f9;
-      --border: #e2e8f0;
-      --text:   #1e293b;
-      --muted:  #64748b;
+      --blue:        #2563eb;
+      --green:       #16a34a;
+      --bg:          #f8fafc;
+      --card-bg:     #ffffff;
+      --card-border: #e2e8f0;
+      --item-bg:     #f1f5f9;
+      --text:        #1e293b;
+      --muted:       #64748b;
+      --shadow:      rgba(0,0,0,0.06);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --blue:        #60a5fa;
+        --green:       #4ade80;
+        --bg:          #0f172a;
+        --card-bg:     #1e293b;
+        --card-border: #334155;
+        --item-bg:     #0f172a;
+        --text:        #f1f5f9;
+        --muted:       #94a3b8;
+        --shadow:      rgba(0,0,0,0.3);
+      }
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #f8fafc;
+      background: var(--bg);
       color: var(--text);
       min-height: 100vh;
       display: flex;
@@ -29,18 +46,18 @@
     }
 
     .card {
-      background: white;
-      border: 1px solid var(--border);
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
       border-radius: 16px;
       padding: 2.5rem 2rem;
       max-width: 480px;
       width: 100%;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+      box-shadow: 0 4px 24px var(--shadow);
     }
 
     .badge {
       display: inline-block;
-      background: var(--gray);
+      background: var(--item-bg);
       color: var(--muted);
       font-size: 0.72rem;
       font-weight: 600;
@@ -76,7 +93,7 @@
     }
 
     .info-item {
-      background: var(--gray);
+      background: var(--item-bg);
       border-radius: 10px;
       padding: 0.75rem 1rem;
     }
@@ -97,7 +114,7 @@
 
     .divider {
       border: none;
-      border-top: 1px solid var(--border);
+      border-top: 1px solid var(--card-border);
       margin: 1.75rem 0;
     }
 
@@ -107,14 +124,6 @@
       text-transform: uppercase;
       letter-spacing: 0.06em;
       color: var(--muted);
-      margin-bottom: 1rem;
-    }
-
-    /* ── Flash button ── */
-    .flash-row {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
       margin-bottom: 1rem;
     }
 
@@ -142,9 +151,9 @@
       font-size: 0.78rem;
       color: var(--muted);
       text-align: center;
+      margin-top: 0.75rem;
     }
 
-    /* ── Download button ── */
     .download-btn {
       display: flex;
       align-items: center;
@@ -156,7 +165,7 @@
       font-weight: 600;
       border-radius: 10px;
       border: 2px solid var(--green);
-      background: white;
+      background: transparent;
       color: var(--green);
       cursor: pointer;
       text-decoration: none;
@@ -165,7 +174,7 @@
 
     .download-btn:hover {
       background: var(--green);
-      color: white;
+      color: #fff;
     }
 
     .download-btn svg {
@@ -179,6 +188,13 @@
       color: var(--muted);
       text-align: center;
       margin-top: 0.5rem;
+    }
+
+    .download-note code {
+      background: var(--item-bg);
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
+      font-size: 0.72rem;
     }
 
     footer {
@@ -219,16 +235,12 @@
 
     <hr class="divider" />
 
-    <!-- ── Flash section ── -->
     <div class="section-title">① Flash firmware</div>
-    <div class="flash-row">
-      <esp-web-install-button manifest="manifest.json"></esp-web-install-button>
-    </div>
+    <esp-web-install-button manifest="manifest.json"></esp-web-install-button>
     <p class="flash-note">Chrome or Edge only — connect ESP32-C6 via USB before clicking</p>
 
     <hr class="divider" />
 
-    <!-- ── Download section ── -->
     <div class="section-title">② Download Zigbee2MQTT converter</div>
     <a
       class="download-btn"
@@ -240,7 +252,7 @@
       </svg>
       Download poolLightTemp.mjs
     </a>
-    <p class="download-note">Drop in your Zigbee2MQTT <code>external_converters/</code> folder and restart Z2M</p>
+    <p class="download-note">Drop in your Z2M <code>external_converters/</code> folder and restart Z2M</p>
 
     <footer>
       <a href="https://github.com/StaRky33/Zigbee-Pool-Light-Temp" target="_blank">View on GitHub</a>
