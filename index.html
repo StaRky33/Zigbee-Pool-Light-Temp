@@ -168,13 +168,17 @@
       background: transparent;
       color: var(--green);
       cursor: pointer;
-      text-decoration: none;
       transition: background 0.15s, color 0.15s;
     }
 
     .download-btn:hover {
       background: var(--green);
       color: #fff;
+    }
+
+    .download-btn:disabled {
+      opacity: 0.6;
+      cursor: wait;
     }
 
     .download-btn svg {
@@ -195,6 +199,14 @@
       padding: 0.1rem 0.35rem;
       border-radius: 4px;
       font-size: 0.72rem;
+    }
+
+    .error-msg {
+      font-size: 0.78rem;
+      color: #ef4444;
+      text-align: center;
+      margin-top: 0.5rem;
+      display: none;
     }
 
     footer {
@@ -242,17 +254,14 @@
     <hr class="divider" />
 
     <div class="section-title">② Download Zigbee2MQTT converter</div>
-    <a
-      class="download-btn"
-      href="https://raw.githubusercontent.com/StaRky33/Zigbee-Pool-Light-Temp/main/external_converters/poolLightTemp.mjs"
-      download="poolLightTemp.mjs"
-    >
+    <button class="download-btn" id="dl-btn" onclick="downloadConverter()">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
         <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
       </svg>
-      Download poolLightTemp.mjs
-    </a>
+      <span id="dl-label">Download poolLightTemp.mjs</span>
+    </button>
     <p class="download-note">Drop in your Z2M <code>external_converters/</code> folder and restart Z2M</p>
+    <p class="error-msg" id="dl-error">Download failed — check your connection and try again</p>
 
     <footer>
       <a href="https://github.com/StaRky33/Zigbee-Pool-Light-Temp" target="_blank">View on GitHub</a>
@@ -260,5 +269,38 @@
       <a href="https://github.com/StaRky33/Zigbee-Pool-Light-Temp/releases" target="_blank">Releases</a>
     </footer>
   </div>
+
+  <script>
+    async function downloadConverter() {
+      const btn   = document.getElementById('dl-btn');
+      const label = document.getElementById('dl-label');
+      const error = document.getElementById('dl-error');
+
+      btn.disabled  = true;
+      label.textContent = 'Downloading…';
+      error.style.display = 'none';
+
+      try {
+        const url  = 'https://raw.githubusercontent.com/StaRky33/Zigbee-Pool-Light-Temp/main/external_converters/poolLightTemp.mjs';
+        const res  = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const blob = await res.blob();
+        const a    = document.createElement('a');
+        a.href     = URL.createObjectURL(blob);
+        a.download = 'poolLightTemp.mjs';
+        a.click();
+        URL.revokeObjectURL(a.href);
+
+        label.textContent = '✓ Downloaded!';
+        setTimeout(() => { label.textContent = 'Download poolLightTemp.mjs'; }, 3000);
+      } catch (err) {
+        error.style.display = 'block';
+        label.textContent = 'Download poolLightTemp.mjs';
+      } finally {
+        btn.disabled = false;
+      }
+    }
+  </script>
 </body>
 </html>
