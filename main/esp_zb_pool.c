@@ -38,9 +38,8 @@
 
 static const char *TAG = "POOL_CTRL";
 
-/* ── Intervalle de report (debug : 5 min, prod : 30 min) ───
- * Changer DEBUG_REPORT_INTERVAL_MS → TEMP_REPORT_INTERVAL_MS en prod */
-#define DEBUG_REPORT_INTERVAL_MS   (5 * 60 * 1000)
+/* ── Intervalle de report (5 min) ─── */
+#define REPORT_INTERVAL_MS   (5 * 60 * 1000)
 
 /* Spinlock pour protéger s_temp_update_requested entre tâches */
 static portMUX_TYPE s_mux = portMUX_INITIALIZER_UNLOCKED;
@@ -400,7 +399,7 @@ static void temp_report_task(void *pvParameters)
 
         /* Attente avec sortie anticipée si update demandée */
         uint32_t waited_ms = 0;
-        while (waited_ms < DEBUG_REPORT_INTERVAL_MS) {
+        while (waited_ms < REPORT_INTERVAL_MS) {
             vTaskDelay(pdMS_TO_TICKS(1000));
             waited_ms += 1000;
 
@@ -416,7 +415,7 @@ static void temp_report_task(void *pvParameters)
 
         /* Watchdog soft */
         uint32_t t_elapsed    = uptime_s() - t_start;
-        uint32_t expected_max = (DEBUG_REPORT_INTERVAL_MS / 1000) * 2;
+        uint32_t expected_max = (REPORT_INTERVAL_MS / 1000) * 2;
         if (t_elapsed > expected_max) {
             ESP_LOGE(TAG, "[WDT] Cycle #%lu took %lus — expected max %lus! Task stalling?",
                      cycle, t_elapsed, expected_max);
@@ -441,7 +440,7 @@ void app_main(void)
     ESP_LOGI(TAG, "║   STARKYDIY — ESP32-C6 Zigbee        ║");
     ESP_LOGI(TAG, "╚══════════════════════════════════════╝");
     ESP_LOGI(TAG, "[BOOT] Report interval : %dms (%d min)",
-             DEBUG_REPORT_INTERVAL_MS, DEBUG_REPORT_INTERVAL_MS / 60000);
+             REPORT_INTERVAL_MS, REPORT_INTERVAL_MS / 60000);
     ESP_LOGI(TAG, "[BOOT] Free heap at boot : %u bytes",
              heap_caps_get_free_size(MALLOC_CAP_DEFAULT));
 
