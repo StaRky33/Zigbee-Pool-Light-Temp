@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Pool Controller — STARKYDIY</title>
+  <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
   <style>
     :root {
       --blue:        #2563eb;
@@ -33,6 +35,7 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
@@ -80,14 +83,6 @@
     .version span {
       font-weight: 600;
       color: var(--blue);
-    }
-
-    .loaded {
-      opacity: 0.5;
-    }
-
-    .loaded {
-      opacity: 1;
     }
 
     .info-grid {
@@ -150,6 +145,7 @@
       transition: opacity 0.15s;
     }
 
+    esp-web-install-button::part(button):hover { opacity: 0.88; }
 
     .flash-note {
       font-size: 0.78rem;
@@ -220,138 +216,88 @@
       color: var(--muted);
     }
 
+    footer a { color: var(--blue); text-decoration: none; }
     footer a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
   <div class="card">
     <div class="badge">STARKYDIY</div>
-    <h1 id="title">Pool Controller</h1>
-
-    <p class="version">Version <span id="version">—</span></p>
+    <h1>Pool Controller</h1>
+    <p class="version">Firmware <span id="fw-version">…</span> — <span id="fw-chip">…</span> Zigbee</p>
 
     <div class="info-grid">
       <div class="info-item">
         <div class="label">Chip</div>
-        <div class="value" id="chip">—</div>
+        <div class="value" id="chip-grid">…</div>
       </div>
       <div class="info-item">
         <div class="label">Protocol</div>
-        <div class="value" id="protocol">—</div>
+        <div class="value">Zigbee</div>
       </div>
       <div class="info-item">
         <div class="label">EP 10</div>
-        <div class="value" id="ep10">—</div>
+        <div class="value">Relay On/Off</div>
       </div>
       <div class="info-item">
         <div class="label">EP 11</div>
-        <div class="value" id="ep11">—</div>
+        <div class="value">NTC Temperature</div>
       </div>
     </div>
 
     <hr class="divider" />
 
     <div class="section-title">① Flash firmware</div>
-    <esp-web-install-button id="install-btn"></esp-web-install-button>
-    <p class="flash-note">Flashes via USB (Chrome/Edge)</p>
+    <esp-web-install-button manifest="manifest.json"></esp-web-install-button>
+    <p class="flash-note">Chrome or Edge only — connect ESP32-C6 via USB before clicking</p>
 
     <hr class="divider" />
 
-    <div class="section-title">② (Optional) External converter</div>
-    <button class="download-btn" id="dl-btn">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+    <div class="section-title">② Download Zigbee2MQTT converter</div>
+    <button class="download-btn" id="dl-btn" onclick="downloadConverter()">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
       </svg>
-      <span id="dl-label">Download converter</span>
+      <span id="dl-label">Download poolLightTemp.mjs</span>
     </button>
-    <p class="download-note" id="dl-note">For Zigbee2MQTT — place in <code>external_converters/</code></p>
-    <p class="error-msg" id="dl-error">Download failed — try again later</p>
+    <p class="download-note">Drop in your Z2M <code>external_converters/</code> folder and restart Z2M</p>
+    <p class="error-msg" id="dl-error">Download failed — check your connection and try again</p>
 
     <footer>
-      <a href="https://github.com/StaRky33/Zigbee-Pool-Light-Temp">GitHub</a>&nbsp;·&nbsp;
-      <a href="https://starky33.github.io/Zigbee-Pool-Light-Temp/">Web Builder</a>
+      <a href="https://github.com/StaRky33/Zigbee-Pool-Light-Temp" target="_blank">View on GitHub</a>
+      &nbsp;·&nbsp;
+      <a href="https://github.com/StaRky33/Zigbee-Pool-Light-Temp/releases" target="_blank">Releases</a>
     </footer>
   </div>
 
-  <script type="module" src="https://unpkg.com/esp-web-tools@9.1.0/web/install-button.js?module"></script>
   <script>
-    const url = 'https://raw.githubusercontent.com/StaRky33/Zigbee-Pool-Light-Temp/refs/heads/gh-pages/firmware/pool_light_temp_esp32c6.json';
-    const btn   = document.getElementById('dl-btn');
-    const label = document.getElementById('dl-label');
-    const error = document.getElementById('dl-error');
+    fetch('manifest.json')
+      .then(r => r.json())
+      .then(m => {
+        const chip = m.builds[0].chipFamily;
+        document.getElementById('fw-version').textContent = 'v' + m.version;
+        document.getElementById('fw-chip').textContent    = chip;
+        document.getElementById('chip-grid').textContent  = chip;
+      })
+      .catch(() => {
+        document.getElementById('fw-version').textContent = 'unknown';
+        document.getElementById('fw-chip').textContent    = 'unknown';
+        document.getElementById('chip-grid').textContent  = 'unknown';
+      });
 
-    // Load manifest.json and update UI dynamically
-    async function loadManifest() {
-      try {
-        const response = await fetch('manifest.json');
-        
-        if (!response.ok) {
-          throw new Error('Manifest not found');
-        }
-        
-        const manifest = await response.json();
-        
-        // Update title with version
-        const titleEl = document.getElementById('title');
-        if (titleEl && manifest.version) {
-          titleEl.textContent = `Pool Controller v${manifest.version}`;
-        }
-        
-        // Update version in subtitle
-        const versionEl = document.getElementById('version');
-        if (versionEl && manifest.version) {
-          versionEl.textContent = manifest.version;
-        }
-        
-        // Update chip family
-        const chipEl = document.getElementById('chip');
-        if (chipEl && manifest.builds && manifest.builds.length > 0) {
-          const chip = manifest.builds[0].chipFamily || 'ESP32-C6';
-          chipEl.textContent = chip;
-          chipEl.classList.add('loaded');
-        }
-        
-        // Update protocol
-        const protocolEl = document.getElementById('protocol');
-        if (protocolEl) {
-          protocolEl.textContent = 'Zigbee';
-          protocolEl.classList.add('loaded');
-        }
-
-        // Update EP 10
-        const ep10El = document.getElementById('ep10');
-        if (ep10El) {
-          ep10El.textContent = 'Relay';
-          ep10El.classList.add('loaded');
-        }
-
-        // Update EP 11
-        const ep11El = document.getElementById('ep11');
-        if (ep11El) {
-          ep11El.textContent = 'Temp';
-          ep11El.classList.add('loaded');
-        }
-        
-      } catch (err) {
-        console.warn('Could not load manifest:', err.message);
-        // Fallback values are already in place
-      }
-    }
-    
-    // Load manifest on page load
-    loadManifest();
-    
     async function downloadConverter() {
+      const btn   = document.getElementById('dl-btn');
+      const label = document.getElementById('dl-label');
+      const error = document.getElementById('dl-error');
+
       btn.disabled  = true;
       label.textContent = 'Downloading…';
       error.style.display = 'none';
 
       try {
+        const url  = 'https://raw.githubusercontent.com/StaRky33/Zigbee-Pool-Light-Temp/main/external_converters/poolLightTemp.mjs';
         const res  = await fetch(url);
-
-        if (!res.ok) {
-          throw new Error('Network error');
-        }
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
         const blob = await res.blob();
         const a    = document.createElement('a');
@@ -361,13 +307,14 @@
         URL.revokeObjectURL(a.href);
 
         label.textContent = '✓ Downloaded!';
+        setTimeout(() => { label.textContent = 'Download poolLightTemp.mjs'; }, 3000);
       } catch (err) {
         error.style.display = 'block';
+        label.textContent = 'Download poolLightTemp.mjs';
       } finally {
         btn.disabled = false;
       }
     }
   </script>
-<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447" integrity="sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
 </body>
 </html>
