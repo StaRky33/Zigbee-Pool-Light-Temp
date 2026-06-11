@@ -1,11 +1,16 @@
 # Zigbee Pool Light Temp
-
 ![Version](https://img.shields.io/badge/version-1.0.1-blue)
 ![ESP32-C6](https://img.shields.io/badge/ESP32-C6-Seeed%20XIAO)
 ![Zigbee](https://img.shields.io/badge/Zigbee-3.0-green)
 ![License](https://img.shields.io/badge/License-Apache%202.0-green)
 
 Zigbee-enabled pool light controller with integrated NTC temperature sensor. Controls a 12V AC pool light relay while reporting water temperature to Zigbee2MQTT and Home Assistant.
+---
+
+## 🌐 Web Builder
+
+**Build and flash your firmware online!**  
+Use the [Zigbee Pool Light Temp Web Builder](https://starky33.github.io/Zigbee-Pool-Light-Temp/) to generate and flash custom firmware directly from your browser — no ESP-IDF installation required.
 
 ---
 
@@ -26,8 +31,10 @@ Zigbee-enabled pool light controller with integrated NTC temperature sensor. Con
 
 | Component | Reference | Price |
 |---|---|---|
-| Microcontroller | Seeed Studio XIAO ESP32C6 (with antenna) | ~€8.00 |
 | Temperature probe | NTC 10kΩ 035HP05202 | ~€10.00 |
+| ESP32-C6 | XIAO ESP32-C6 | ~€5.00 |
+| Relay module | 5V 1CH optocoupler | ~€2.00 |
+| LM2596HV | Step-down regulator | ~€4.00 |
 | **Total** | | **~€21.00** |
 
 > **Note**: The Seeed Studio XIAO ESP32C6 includes a built-in antenna connector and external antenna for better range compared to the standard DevKit board.
@@ -40,8 +47,8 @@ Zigbee-enabled pool light controller with integrated NTC temperature sensor. Con
 
 The device uses two Zigbee endpoints:
 
-1. **Endpoint 10 (On/Off Cluster)** — Controls the pool light relay
-2. **Endpoint 11 (Temperature Measurement Cluster)** — Reports NTC temperature readings
+- **Endpoint 10**: On/Off cluster — Relay control (GPIO6)
+- **Endpoint 11**: Temperature measurement — NTC probe (GPIO1 ADC)
 
 The ESP32-C6 reads an NTC thermistor via its ADC (GPIO1), applies calibration offsets, and reports the temperature over Zigbee. The relay coil is driven by GPIO6 to switch the 12V AC pool light circuit.
 
@@ -107,6 +114,7 @@ GND
 
 ```bash
 # Clone the repository
+git clone https://github.com/StaRky33/Zigbee-Pool-Light-Temp.git
 cd Zigbee-Pool-Light-Temp
 
 # Set target (ESP32-C6)
@@ -140,13 +148,6 @@ For field calibration:
 |---|---|---|---|
 | `RELAY_GPIO` | `main/relay.h` | GPIO6 | Relay control (was GPIO4 in v1.0.0) |
 | `NTC_GPIO` | `main/ntc.h` | GPIO1 | NTC ADC input |
-
-### Temperature report interval
-
-In `main/esp_zb_pool.h`:
-```c
-#define REPORT_INTERVAL_MS  (5 * 60 * 1000)  // 5 minutes (300 seconds)
-```
 
 ---
 
