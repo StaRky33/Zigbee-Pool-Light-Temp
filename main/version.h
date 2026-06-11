@@ -20,11 +20,11 @@
 
 #define FW_VERSION_MAJOR  1
 #define FW_VERSION_MINOR  0
-#define FW_VERSION_PATCH  0
+#define FW_VERSION_PATCH  1
 
 /* Human-readable string — must match the three numbers above */
-#define FW_VERSION_STR      "1.0.0"
-#define FW_VERSION_ZCL_STR  "\x05" "1.0.0"
+#define FW_VERSION_STR      "1.0.1"
+#define FW_VERSION_ZCL_STR  "\x05" "1.0.1"
 
 /* ZCL ApplicationVersion (0x0001) encodes as (MAJOR<<4)|MINOR */
 #define FW_VERSION_ZCL    ((FW_VERSION_MAJOR << 4) | FW_VERSION_MINOR)

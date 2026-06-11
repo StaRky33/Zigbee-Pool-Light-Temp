@@ -1,5 +1,5 @@
 // ── Firmware version — keep in sync with version.h ──────────
-const FW_VERSION = '1.0.0';
+const FW_VERSION = '1.0.1';
 
 import {presets as e} from 'zigbee-herdsman-converters/lib/exposes';
 
@@ -19,6 +19,10 @@ const fzLocal = {
             const beta = (msg.data || {})[0xFF01];
             if (beta !== undefined) {
                 result.ntc_beta = beta;
+            }
+            const interval = (msg.data || {})[0xFF02];
+            if (interval !== undefined) {
+                result.report_interval = interval;
             }
             return result;
         },
@@ -89,6 +93,22 @@ const tzLocal = {
             await endpoint.read('msTemperatureMeasurement', [0xFF01]);
         },
     },
+    report_interval: {
+        key: ['report_interval'],
+        convertSet: async (entity, key, value, meta) => {
+            const endpoint = meta.device.getEndpoint(11);
+            const v = Math.min(60, Math.max(1, Math.round(value)));
+            await endpoint.write(
+                'msTemperatureMeasurement',
+                {0xFF02: {value: v, type: 0x20}},  // uint8
+            );
+            return {state: {report_interval: v}};
+        },
+        convertGet: async (entity, key, meta) => {
+            const endpoint = meta.device.getEndpoint(11);
+            await endpoint.read('msTemperatureMeasurement', [0xFF02]);
+        },
+    },
     temperature_get: {
         key: ['temperature'],
         convertGet: async (entity, key, meta) => {
@@ -103,9 +123,9 @@ export default {
     model: 'PoolLightTemp',
     vendor: 'STARKYDIY',
     description: `Pool controller — pump relay (EP10) + NTC temperature sensor with offset (EP11) [fw:${FW_VERSION}]`,
-    
+
     fromZigbee: [fzLocal.on_off, fzLocal.temp_and_offset, fzLocal.basic_info],
-    toZigbee:   [tzLocal.on_off, tzLocal.temperature_get, tzLocal.temp_offset, tzLocal.ntc_beta],
+    toZigbee:   [tzLocal.on_off, tzLocal.temperature_get, tzLocal.temp_offset, tzLocal.ntc_beta, tzLocal.report_interval],
 
     exposes: [
         e.switch(),
@@ -137,6 +157,19 @@ export default {
             value_step: 1,
         },
         {
+            type: 'numeric',
+            name: 'report_interval',
+            label: 'Report interval',
+            property: 'report_interval',
+            access: 7,
+            category: 'config',
+            unit: 'min',
+            description: 'Temperature report interval (1–60 min). Change takes effect on next report cycle.',
+            value_min: 1,
+            value_max: 60,
+            value_step: 1,
+        },
+        {
             type: 'text',
             name: 'fw_version',
             label: 'Firmware version',
@@ -158,12 +191,12 @@ export default {
         // Lire l'état initial du relay → corrige "state: null" au démarrage
         await ep10.read('genOnOff', ['onOff']);
 
-        // Lire les attributs custom
+        // Lire les attributs custom au démarrage
         await ep11.read('msTemperatureMeasurement', [0xFF00]);
         await ep11.read('msTemperatureMeasurement', [0xFF01]);
+        await ep11.read('msTemperatureMeasurement', [0xFF02]);
 
         // Lire la version firmware depuis le cluster Basic de EP11
-        // Le résultat est capturé par fzLocal.basic_info et publié dans fw_version
         const basic = await ep11.read('genBasic', ['swBuildId', 'appVersion']);
         if (basic && basic.swBuildId) {
             device.meta.fw_version = basic.swBuildId;

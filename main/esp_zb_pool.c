@@ -38,8 +38,9 @@
 
 static const char *TAG = "POOL_CTRL";
 
-/* ── Intervalle de report (5 min) ─── */
-#define REPORT_INTERVAL_MS   (5 * 60 * 1000)
+/* Temperature report interval (minutes) — shared with zb_attribute_handler */
+static uint8_t s_report_interval_min = 5;  /* Default 5 minutes */
+static portMUX_TYPE s_interval_mux = portMUX_INITIALIZER_UNLOCKED;
 
 /* Spinlock pour protéger s_temp_update_requested entre tâches */
 static portMUX_TYPE s_mux = portMUX_INITIALIZER_UNLOCKED;
@@ -146,6 +147,26 @@ static esp_err_t zb_attribute_handler(
         taskEXIT_CRITICAL(&s_mux);
     }
 
+    /* EP 11 : custom report interval */
+    if (message->info.dst_endpoint == HA_TEMP_ENDPOINT &&
+        message->info.cluster == ZCL_CLUSTER_TEMP_MEASUREMENT &&
+        message->attribute.id == ATTR_REPORT_INTERVAL) {
+        uint8_t interval = *(uint8_t *)message->attribute.data.value;
+        if (interval >= 1 && interval <= 60) {
+            taskENTER_CRITICAL(&s_mux);
+            s_temp_update_requested = true;
+            taskEXIT_CRITICAL(&s_mux);
+
+            taskENTER_CRITICAL(&s_interval_mux);
+            s_report_interval_min = interval;
+            taskEXIT_CRITICAL(&s_interval_mux);
+
+            ESP_LOGI(TAG, "[INTERVAL] Report interval set to %umin", interval);
+        } else {
+            ESP_LOGE(TAG, "[INTERVAL] Invalid interval %u (must be 1-60)", interval);
+        }
+    }
+
     return ESP_OK;
 }
 
@@ -247,7 +268,7 @@ static void esp_zb_task(void *pvParameters)
     static const char s_vendor[] = ZB_DEVICE_VENDOR;
     static const char s_sw_ver[] = FW_VERSION_ZCL_STR;
     static uint8_t    s_app_ver  = FW_VERSION_ZCL;
-    
+
 
     esp_zb_cluster_add_attr(basic_attrs,
         ESP_ZB_ZCL_CLUSTER_ID_BASIC,
@@ -302,22 +323,32 @@ static void esp_zb_task(void *pvParameters)
     esp_zb_attribute_list_t *temp_attrs =
         esp_zb_temperature_meas_cluster_create(&temp_cfg);
 
+    /* Add custom attributes to the temperature measurement cluster */
     int16_t offset_default = 0;
-    esp_zb_custom_cluster_add_custom_attr(
-        temp_attrs,
+    esp_zb_cluster_add_attr(temp_attrs,
+        ESP_ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT,
         ATTR_TEMP_OFFSET,
         ESP_ZB_ZCL_ATTR_TYPE_S16,
         ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE,
         &offset_default);
 
     uint16_t beta_default = NTC_BETA_DEFAULT;
-    esp_zb_custom_cluster_add_custom_attr(
-        temp_attrs,
+    esp_zb_cluster_add_attr(temp_attrs,
+        ESP_ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT,
         ATTR_NTC_BETA,
         ESP_ZB_ZCL_ATTR_TYPE_U16,
         ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE,
         &beta_default);
 
+    uint8_t interval_default = 5;  /* Default 5 minutes */
+    esp_zb_cluster_add_attr(temp_attrs,
+        ESP_ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT,
+        ATTR_REPORT_INTERVAL,
+        ESP_ZB_ZCL_ATTR_TYPE_U8,
+        ESP_ZB_ZCL_ATTR_ACCESS_READ_WRITE,
+        &interval_default);
+
+    /* Create cluster list with the modified attributes */
     esp_zb_cluster_list_t *temp_clusters =
         esp_zb_zcl_cluster_list_create();
     esp_zb_cluster_list_add_basic_cluster(temp_clusters, basic_attrs,
@@ -334,7 +365,7 @@ static void esp_zb_task(void *pvParameters)
     };
     esp_zb_ep_list_add_ep(ep_list, temp_clusters, ep11_cfg);
 
-    /* ── Register + start ────────────────────────────────── */
+/* ── Register + start ────────────────────────────────── */
     esp_zb_device_register(ep_list);
     esp_zb_core_action_handler_register(zb_action_handler);
     esp_zb_set_primary_network_channel_set(0x07FFF800);
@@ -359,6 +390,12 @@ static void temp_report_task(void *pvParameters)
 
         ESP_LOGI(TAG, "[TEMP] ── Cycle #%lu  uptime:%lus ──────────────",
                  cycle, t_start);
+
+        /* Calculate dynamic interval */
+        uint32_t report_interval_ms;
+        taskENTER_CRITICAL(&s_interval_mux);
+        report_interval_ms = s_report_interval_min * 60 * 1000;
+        taskEXIT_CRITICAL(&s_interval_mux);
 
         int16_t raw = 0;
         bool ok = ntc_read(&raw);
@@ -399,7 +436,7 @@ static void temp_report_task(void *pvParameters)
 
         /* Attente avec sortie anticipée si update demandée */
         uint32_t waited_ms = 0;
-        while (waited_ms < REPORT_INTERVAL_MS) {
+        while (waited_ms < report_interval_ms) {
             vTaskDelay(pdMS_TO_TICKS(1000));
             waited_ms += 1000;
 
@@ -415,7 +452,7 @@ static void temp_report_task(void *pvParameters)
 
         /* Watchdog soft */
         uint32_t t_elapsed    = uptime_s() - t_start;
-        uint32_t expected_max = (REPORT_INTERVAL_MS / 1000) * 2;
+        uint32_t expected_max = (report_interval_ms / 1000) * 2;
         if (t_elapsed > expected_max) {
             ESP_LOGE(TAG, "[WDT] Cycle #%lu took %lus — expected max %lus! Task stalling?",
                      cycle, t_elapsed, expected_max);
@@ -439,8 +476,6 @@ void app_main(void)
     ESP_LOGI(TAG, "║   Pool Controller  v" FW_VERSION_STR "            ║");
     ESP_LOGI(TAG, "║   STARKYDIY — ESP32-C6 Zigbee        ║");
     ESP_LOGI(TAG, "╚══════════════════════════════════════╝");
-    ESP_LOGI(TAG, "[BOOT] Report interval : %dms (%d min)",
-             REPORT_INTERVAL_MS, REPORT_INTERVAL_MS / 60000);
     ESP_LOGI(TAG, "[BOOT] Free heap at boot : %u bytes",
              heap_caps_get_free_size(MALLOC_CAP_DEFAULT));
 

@@ -18,3 +18,12 @@
 /* Value depending on temperature sensor attributes. This should work for NTC 10kΩ 035HP05202 */
 #define ATTR_NTC_BETA  0xFF01
 #define NTC_BETA_DEFAULT 3950
+
+
+/*
+ * Manufacturer-specific attribute for temperature reporting interval.
+ * Type: uint8, unit: minutes
+ * Access: read/write via Zigbee2MQTT set command
+ * Range: 1-60 minutes
+ */
+#define ATTR_REPORT_INTERVAL    0xFF02
