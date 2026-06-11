@@ -1,6 +1,6 @@
 {
   "name": "Pool Controller",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "home_assistant_domain": "zigbee2mqtt",
   "funding_url": "https://github.com/StaRky33/Zigbee-Pool-Light-Temp",
   "new_install_prompt_erase": true,
@@ -9,7 +9,7 @@
       "chipFamily": "ESP32-C6",
       "improv": false,
       "parts": [
-        { "path": "https://starky33.github.io/Zigbee-Pool-Light-Temp/firmware/pool_light_temp_v1.0.0_merged.bin",         "offset": 0 }
+        { "path": "https://starky33.github.io/Zigbee-Pool-Light-Temp/firmware/pool_light_temp_v1.0.1_merged.bin",         "offset": 0 }
       ]
     }
   ]

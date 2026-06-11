@@ -16,7 +16,6 @@
 #define NTC_R_REF           10000.0f        // reference resistor (Ω)
 #define NTC_R_NOMINAL       10000.0f        // NTC resistance @ T_NOMINAL
 #define NTC_T_NOMINAL       25.0f           // °C
-#define NTC_BETA            3950.0f         // K — verify against datasheet
 #define NTC_VCC             3.3f
 #define NTC_ADC_MAX         4095.0f         // 12-bit resolution
 
@@ -29,5 +28,5 @@ bool ntc_init(void);
  */
 bool ntc_read(int16_t *temp_hundredths);
 
-extern float g_ntc_beta;
+extern float g_ntc_beta;  // 3950.0f K — verify against datasheet
 #define NTC_BETA g_ntc_beta

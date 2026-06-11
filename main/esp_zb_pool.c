@@ -6,6 +6,7 @@
  * EP 11 : Temperature Measurement (NTC ADC)
  *         + custom offset attribute 0xFF00 (int16, hundredths of °C)
  *         + custom NTC beta attribute 0xFF01 (uint16, K)
+ *         + custom Report interval attribute 0xFF02 (uint8, min)
  *
  * Device identity (must match poolLightTemp.mjs external converter):
  *   zigbeeModel : PoolLightTemp
@@ -471,11 +472,11 @@ void app_main(void)
     }
     ESP_ERROR_CHECK(ret);
 
-    ESP_LOGI(TAG, "");
-    ESP_LOGI(TAG, "╔══════════════════════════════════════╗");
-    ESP_LOGI(TAG, "║   Pool Controller  v" FW_VERSION_STR "            ║");
-    ESP_LOGI(TAG, "║   STARKYDIY — ESP32-C6 Zigbee        ║");
-    ESP_LOGI(TAG, "╚══════════════════════════════════════╝");
+    ESP_LOGI(TAG, ""                                                        );
+    ESP_LOGI(TAG, "╔══════════════════════════════════════╗"                );
+    ESP_LOGI(TAG, "║   Pool Controller  v" FW_VERSION_STR "            ║"   );
+    ESP_LOGI(TAG, "║   STARKYDIY — ESP32-C6 Zigbee        ║"                );
+    ESP_LOGI(TAG, "╚══════════════════════════════════════╝"                );
     ESP_LOGI(TAG, "[BOOT] Free heap at boot : %u bytes",
              heap_caps_get_free_size(MALLOC_CAP_DEFAULT));
 
