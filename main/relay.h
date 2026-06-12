@@ -1,7 +1,7 @@
 #pragma once
 #include <stdbool.h>
 
-#define RELAY_GPIO      4
+#define RELAY_GPIO      6
 
 void relay_init(void);
 void relay_set(bool on);

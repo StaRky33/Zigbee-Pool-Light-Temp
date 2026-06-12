@@ -1,5 +1,5 @@
 // ── Firmware version — keep in sync with version.h ──────────
-const FW_VERSION = '1.0.1';
+const FW_VERSION = '1.0.2';
 
 import {presets as e} from 'zigbee-herdsman-converters/lib/exposes';
 
